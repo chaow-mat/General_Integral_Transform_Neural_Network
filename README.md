@@ -1,1 +1,1 @@
-# Operator-Learning-Generalized-intergral-transform-neural-network
+# Operator-Learning-Generalized-integral-transform-neural-network
