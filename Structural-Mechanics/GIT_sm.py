@@ -45,10 +45,9 @@ step_size = 500
 gamma = 0.5
 
 # load data
-prefix = "/home/wangchao/dataset/FtF/"
-# prefix = "dataset/"
-data = io.loadmat(prefix + "/Static-planestress_40000")
-inputs = data['f_bc'].T # [101, 2000]
+prefix = "~/dataset/FtF/"
+data = io.loadmat(prefix + "Static-planestress_40000.mat")
+inputs = data['f_bc'].T
 outputs = data['stress'].T
 
 # PCA
@@ -91,6 +90,10 @@ y_normalizer.cuda()
 
 print("Input #bases : ", r_f, " output #bases : ", r_g)
 
+################################################################
+# training and evaluation
+################################################################
+model = GIT(r_f, d_width, c_width, r_g)
 string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_l' + str(layer) + '_act_gelu' + '_dw' + str(d_width) + '_cw' + str(c_width) + '_lr' + str(learning_rate) + '-' + str(step_size) + '-' + str(gamma)+ '_noliz' + str(cfg.noliz)
 # path to save model
 if cfg.state=='train':
@@ -98,15 +101,17 @@ if cfg.state=='train':
     if not os.path.exists(path):
         os.makedirs(path)
     writer = SummaryWriter(log_dir=path)
-    model = GIT(r_f, d_width, c_width, r_g)
+
     path_model = "model/GIT/"
     if not os.path.exists(path_model):
         os.makedirs(path_model)
 else:
     if (cfg.path_model):
-        model = torch.load(cfg.path_model, map_location=device)
+        model_state_dict = torch.load(cfg.path_model, map_location=device)
+        model.load_state_dict(model_state_dict)
     else:
-        model = torch.load('model/GIT/GIT_' + string +  '.model', map_location=device)
+        model_state_dict = torch.load('model/GIT/GIT_' + string +  '.model', map_location=device)
+        model.load_state_dict(model_state_dict)
     num_epoches = 1
     batch_size = 1
 
