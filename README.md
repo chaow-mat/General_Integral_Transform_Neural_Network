@@ -51,11 +51,17 @@ The results of the neural network model trained on N = 20000 data using hyperpar
 #### Helmholtz equation ####
 <img src="Figures/maxerror_image_hh.jpg" width="400" />
 
+---
+
 #### Structural Mechanics
 <img src="Figures/maxerror_image_sm.jpg" width="400" />
 
+---
+
 #### Advection equation
 <img src="Figures/maxerror_image_ad.jpg" width="400" />
+
+---
 
 #### Darcy flow
 <img src="Figures/maxerror_image_da.jpg" width="400" />
