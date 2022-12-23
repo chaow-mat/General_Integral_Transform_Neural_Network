@@ -4,11 +4,11 @@ This work is to propose a novel neural network, GIT-Net, for operator learning. 
 
 ## Data (paired input-output functions)
 The PDE problems used for validation are:
-1. Navier-Stokes equation (2D, structured grids)
-2. Helmholtz equation (2D, structured grids)
-3. Structural mechanics (2D, unstructured discretization)
-4. Advection equation (1D, structured grids)
-5. Darcy flow (2D, unstructured discretization)
+1. Navier-Stokes equation (2D, structured meshes)
+2. Helmholtz equation (2D, structured meshes)
+3. Structural mechanics (2D, unstructured meshes)
+4. Advection equation (1D, structured meshes)
+5. Darcy flow (2D, unstructured meshes)
 
 All data for training and testing can be found in https://drive.google.com/drive/folders/1vmmPTwiIIbdOVTC209OKArcyjuYZcMHU?usp=sharing. For the problems defined in unstructured meshes, the intepolated data on a structured meshes are provided.
 
@@ -31,7 +31,7 @@ cd Navier-stokes/
 python3 GIT_ns.py --c_width 32 --d_width 512 --M 2500 --state 'eval' --path_model 'models/GIT/GIT_2500_dw_512_cw32.model' --device 0
 ```
 
-## Results
+## Results (comparison among GIT-Net, PCA-Net, POD-DeepOnet, and FNO)
 ### Test error
 
 ### Error profile
