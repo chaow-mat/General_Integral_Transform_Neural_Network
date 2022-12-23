@@ -70,6 +70,6 @@ The results of the neural network model trained on N = 20000 data using hyperpar
 ---
 
 ### Evalustion cost
-
+The evaluatin cost for all methods with varying hyperparameters shown, which is computed by counting floating point operations. 
 <img src="Figures/cost-error.jpg" width="600" />
 
