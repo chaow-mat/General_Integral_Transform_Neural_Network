@@ -41,10 +41,12 @@ Test error for different amount of training data (N) and all method are shown. `
 ### Error profile ###
 The results of the neural network model trained on N = 20000 data using hyperparameters that minimize test errors are presented, including the predictions and error profiles of the worst-error cases.
 
----
+
 
 #### Navier-Stokes ####
 <img src="Figures/maxerror_image_ns.jpg" width="400" />
+
+
 ---
 
 
