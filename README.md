@@ -37,6 +37,7 @@ python3 GIT_ns.py --c_width 32 --d_width 512 --M 2500 --state 'eval' --path_mode
 Test error for different amount of training data (N) and all method are shown. `C` and `K` are hyperparameters representing the size of the networks.
 <img src="Figures/testerror_ALL.jpg" width="600" />
 
+---
 
 ### Error profile ###
 The results of the neural network model trained on N = 20000 data using hyperparameters that minimize test errors are presented, including the predictions and error profiles of the worst-error cases.
@@ -59,14 +60,16 @@ The results of the neural network model trained on N = 20000 data using hyperpar
 ---
 
 #### Advection equation
-<img src="Figures/maxerror_image_ad.jpg" width="400" />
+<img src="Figures/maxerror_image_ad.jpg" width="500" />
 
 ---
 
 #### Darcy flow
 <img src="Figures/maxerror_image_da.jpg" width="400" />
 
+---
+
 ### Evalustion cost
 
-<img src="Figures/cost-error.jpg" width="400" />
+<img src="Figures/cost-error.jpg" width="600" />
 
