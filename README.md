@@ -33,13 +33,25 @@ python3 GIT_ns.py --c_width 32 --d_width 512 --M 2500 --state 'eval' --path_mode
 
 ## Results (comparison among GIT-Net, PCA-Net, POD-DeepOnet, and FNO)
 ### Test error
-
+Test error for different amount of training data (N) and all method are shown. `C` and `K` are hyperparameters representing the size of the networks.
 <img src="Figures/testerror_ALL.jpg" width="600" />
 
-### Error profile
+### Error profile 
+The results of the neural network model trained on N = 20000 data using hyperparameters that minimize test errors are presented, including the predictions and error profiles of the worst-error cases.
 #### Navier-Stokes
 <img src="Figures/maxerror_image_ns.jpg" width="400" />
 
+#### Helmholtz equation
+<img src="Figures/maxerror_image_hh.jpg" width="400" />
+
+#### Structural Mechanics
+<img src="Figures/maxerror_image_sm.jpg" width="400" />
+
+#### Advection equation
+<img src="Figures/maxerror_image_ad.jpg" width="400" />
+
+#### Darcy flow
+<img src="Figures/maxerror_image_da.jpg" width="400" />
 
 ### Evalustion cost
 
