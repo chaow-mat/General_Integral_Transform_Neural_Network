@@ -46,9 +46,7 @@ The results of the neural network model trained on N = 20000 data using hyperpar
 #### Navier-Stokes ####
 <img src="Figures/maxerror_image_ns.jpg" width="400" />
 
-
 ---
-
 
 #### Helmholtz equation ####
 <img src="Figures/maxerror_image_hh.jpg" width="400" />
