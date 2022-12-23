@@ -16,10 +16,27 @@ All data for training and testing can be found in https://drive.google.com/drive
 1. The data used on problem 1, 2, and 4 are from paper _Maarten V. de Hoop, Daniel Zhengyu Huang, Elizabeth Qian, Andrew M. Stuart. "[The Cost-Accuracy Trade-Off In Operator Learning With Neural Networks](https://arxiv.org/abs/2203.13181)."_ And the original address is https://data.caltech.edu/records/20091.
 2. The data used on problem 5 is generated as suggested in paper _Lu Lu, Xuhui Meng, Shengze Cai, Zhiping Mao, Somdatta Goswami, Zhongqiang Zhang, and George Em Karniadakis. "A comprehensive and fair comparison of two neural operators (with practical extensions) based on FAIR data"_.
 
-## Code Structure
+## Code 
 ### Training
-Example of GIT-Net for problem 1
+Example of GIT-Net for Navier-Stokes equation
 ```
 cd Navier-stokes/
 python3 GIT_ns.py --c_width 32 --d_width 512 --M 2500 --state 'train' --device 0
 ```
+
+### Testing
+Example of GIT-Net for Navier-Stokes equation
+```
+cd Navier-stokes/
+python3 GIT_ns.py --c_width 32 --d_width 512 --M 2500 --state 'eval' --path_model 'models/GIT/GIT_2500_dw_512_cw32.model' --device 0
+```
+
+## Results
+## Test error
+
+## Error profile
+
+## Evalustion cost
+
+
+### model
