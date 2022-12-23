@@ -1,4 +1,4 @@
-# Generalized Integral Transform Neural Network (GIT-Net) for Operator Learning
+# GIT-Net: Generalized Integral Transform Neural Network for Operator Learning
 
 This work is to propose a novel neural network, GIT-Net, for operator learning. It is demonstrated by solving several PDEs and compared with three exsiting neural network operators, `PCA-Net`, `FNO`, and `POD-DeepOnet` from the view of test error, error profile, and evaluation cost.
 
