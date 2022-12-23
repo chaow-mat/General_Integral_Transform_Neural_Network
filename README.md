@@ -1,7 +1,7 @@
 # GIT-Net: Generalized Integral Transform Neural Network for Operator Learning #
 
 
-This work proposes a novel neural network, GIT-Net, for operator learning. It is demonstrated by solving several PDEs and compared with three exsiting neural network operators, `PCA-Net`, `FNO`, and `POD-DeepOnet` from the view of test error, error profile, and evaluation cost.
+This work proposes a novel neural network, GIT-Net, for operator learning. It is demonstrated by solving several PDEs and comparing with three exsiting neural network operators, `PCA-Net`, `FNO`, and `POD-DeepOnet` from the view of test error, error profile, and evaluation cost.
 
 ## Data (paired input-output functions) ##
 The PDE problems used for validation are:
@@ -70,7 +70,7 @@ The results of the neural network model trained on N = 20000 data using hyperpar
 ---
 
 ### Evalustion cost
-The evaluatin cost for all methods with varying hyperparameters shown, which is computed by counting floating point operations. 
+The evaluation cost vs. test error for all methods with varying hyperparameters shown, in which evaluation cost is computed by counting floating point operations.
 
 <img src="Figures/cost-error.jpg" width="600" />
 
