@@ -32,11 +32,11 @@ python3 GIT_ns.py --c_width 32 --d_width 512 --M 2500 --state 'eval' --path_mode
 ```
 
 ## Results
-## Test error
+### Test error
 
-## Error profile
+### Error profile
 
-## Evalustion cost
+### Evalustion cost
 
 
-### model
+
