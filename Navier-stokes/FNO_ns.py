@@ -45,8 +45,7 @@ gamma = 0.5
 ################################################################
 # load data
 ################################################################
-prefix = "/home/wangchao/dataset/FtF/"
-# prefix = "dataset/"
+prefix = "~/dataset/FtF/"
 data = np.load(prefix + "NavierStokes_40000_compressed.npz")
 cs = data['inputs']
 K = data['outputs']
@@ -77,7 +76,7 @@ y_test = y_test.reshape(ntest,s,s,1)
 ################################################################
 # training and evaluation
 ################################################################
-
+model = FNO2d(modes, modes, width).to(device)
 string =  str(ntrain) + "_cw" + str(width) + "_m" + str(modes) + "_lr" + str(learning_rate) + "-" + str(step_size) + "-" + str(gamma) +  '_noliz' + str(cfg.noliz)
 
 if cfg.state=='train':
@@ -85,16 +84,18 @@ if cfg.state=='train':
     if not os.path.exists(path):
         os.makedirs(path)
     writer = SummaryWriter(log_dir=path)
-    model = FNO2d(modes, modes, width).to(device)
+
     path_model = "model/FNO/"
     if not os.path.exists(path_model):
         os.makedirs(path_model)
 
 else: # eval
     if (cfg.path_model):
-        model = torch.load(cfg.path_model, map_location=device)
+        model_state_dict = torch.load(cfg.path_model, map_location=device)
+        model.load_state_dict(model_state_dict)
     else:
-        model = torch.load("model/FNO/FNO_" + string + ".model", map_location=device)
+        model_state_dict = torch.load("model/FNO/FNO_" + string + ".model", map_location=device)
+        model.load_state_dict(model_state_dict)
     epochs = 1
     batch_size = 1
 

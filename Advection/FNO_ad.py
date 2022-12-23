@@ -23,7 +23,7 @@ parser.add_argument('--M',  type=int, default=10000, help="number of dataset")
 parser.add_argument('--state', type=str, default='eval')
 parser.add_argument('--noliz', type=bool, default=True, help="if normalization is used")
 parser.add_argument('--device', type=int, default=2, help="index of cuda device")
-parser.add_argument('--path_model', type=str, default='/home/wangchao/Codes/FunctionLearning/advection/model/FNO/FNO_10000_cw16_m12_lr0.001-100-0.5_nolizTrue-lploss-orinoliz.model', help="path of model for testing")
+parser.add_argument('--path_model', type=str, default='model/FNO/FNO_10000_cw16.model', help="path of model for testing")
 cfg = parser.parse_args()
 
 
@@ -48,10 +48,10 @@ step_size = 100
 gamma = 0.5
 
 
-prefix = "/home/wangchao/dataset/FtF/"
-# prefix = "dataset/"
-a0 = np.load(prefix + "/Advection_inputs.npy")
-aT = np.load(prefix + "/Advection_outputs.npy")
+prefix = "~/dataset/FtF/"
+data = np.load(prefix + "Advection_40000_compressed.npz")
+a0 = data['inputs']
+aT = data['outputs']
 
 # transpose
 a0 = a0.transpose(1, 0)
@@ -98,7 +98,8 @@ else: # eval
         model_state_dict = torch.load(cfg.path_model, map_location=device)
         model.load_state_dict(model_state_dict)
     else:
-        model = torch.load("model/FNO/FNO_" + string + ".model", map_location=device)
+        model_state_dict = torch.load("model/FNO/FNO_" + string + ".model", map_location=device)
+        model.load_state_dict(model_state_dict)
     epochs = 1
     batch_size = 1
 

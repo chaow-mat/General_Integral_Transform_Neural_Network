@@ -42,13 +42,10 @@ step_size = 500
 gamma = 0.5
 
 # load data
-prefix = "/home/wangchao/dataset/FtF/"
-# prefix = "dataset/"
-data_advec_input = np.load(prefix + "/Advection_inputs.npy")
-data_advec_output = np.load(prefix + "/Advection_outputs.npy")
-
-inputs  = data_advec_input
-outputs = data_advec_output
+prefix = "~/dataset/FtF/"
+data = np.load(prefix + "Advection_40000_compressed.npz")
+inputs = data['inputs']
+outputs = data['outputs']
 
 train_inputs = inputs[:,:ntrain]
 test_inputs  = inputs[:, ntrain:ntrain+ntest]
@@ -94,6 +91,7 @@ y_test = y_test.reshape(ntest, r_g)
 ################################################################
 # training and evaluation
 ################################################################
+model = FNN(r_f, r_g, layers, width)
 string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_cw'+ str(cfg.width) + '_layer'+str(layers)+'_lr' + str(learning_rate) + '-' + str(
         step_size) + '-' + str(gamma) + '_noliz' + str(cfg.noliz)
 
@@ -102,15 +100,17 @@ if cfg.state=='train':
     if not os.path.exists(path):
         os.makedirs(path)
     writer = SummaryWriter(log_dir=path)
-    model = FNN(r_f, r_g, layers, width)
+
     path_model = "model/PCA/"
     if not os.path.exists(path_model):
         os.makedirs(path_model)
 else:
     if (cfg.path_model):
-        model = torch.load(cfg.path_model, map_location=device)
+        model_state_dict = torch.load(cfg.path_model, map_location=device)
+        model.load_state_dict(model_state_dict)
     else:
-        model = torch.load('model/PCA/PCA_'+ string + '.model', map_location=device)
+        model_state_dict = torch.load('model/PCA/PCA_'+ string + '.model', map_location=device)
+        model.load_state_dict(model_state_dict)
     epochs = 1
     batch_size = 1
 
@@ -198,5 +198,4 @@ if cfg.state == 'train':
 
 
 
-# print("Total time is :", default_timer() - t0, "Total epoch is ", epochs)
 

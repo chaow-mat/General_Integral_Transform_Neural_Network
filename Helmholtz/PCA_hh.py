@@ -13,15 +13,15 @@ from scipy.io import savemat
 import statistics
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--width', type=int, default=16)
+parser.add_argument('--width', type=int, default=1024)
 parser.add_argument('--M', type=int, default=2500, help="number of dataset")
 parser.add_argument('--device', type=int, default=2)
 parser.add_argument('--dim_PCA', type=int, default=200)
 parser.add_argument('--eps', type=float, default=1e-6)
 parser.add_argument('--noliz', type=bool, default=True)
-parser.add_argument('--state', type=str, default='train')
+parser.add_argument('--state', type=str, default='eval')
 parser.add_argument('--layers', type=int, default=4)
-parser.add_argument('--path_model', type=str, default='', help="path of model for testing")
+parser.add_argument('--path_model', type=str, default='model/PCA/PCA_20000_cw1024.model', help="path of model for testing")
 cfg = parser.parse_args()
 print(sys.argv)
 
@@ -41,10 +41,10 @@ step_size = 500
 gamma = 0.5
 
 # load data
-prefix = "/home/wangchao/dataset/FtF/"
-# prefix = "dataset/"
-inputs = np.load(prefix + "/Helmholtz_inputs.npy")
-outputs = np.load(prefix + "/Helmholtz_outputs.npy")
+prefix = "~/dataset/FtF/"
+data = np.load(prefix + "Helmholtz_40000_compressed.npz")
+inputs = data['inputs']
+outputs = data['outputs']
 
 xgrid = np.linspace(0, 1, N+1)
 xgrid = xgrid[:-1]
@@ -101,21 +101,24 @@ print("Input #bases : ", r_f, " output #bases : ", r_g)
 
 string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_cw'+ str(cfg.width) + '_layer'+str(layers)+'_lr' + str(learning_rate) + '-' + str(
         step_size) + '-' + str(gamma) + '_noliz' + str(cfg.noliz)
+model = FNN(r_f, r_g, layers, width).to(device)
 
 if cfg.state=='train':
     path = 'training/PCA/PCA_'+ string
     if not os.path.exists(path):
         os.makedirs(path)
     writer = SummaryWriter(log_dir=path)
-    model = FNN(r_f, r_g, layers, width)
+
     path_model = "model/PCA/"
     if not os.path.exists(path_model):
         os.makedirs(path_model)
 else:
     if (cfg.path_model):
-        model = torch.load(cfg.path_model, map_location=device)
+        model_state_dict = torch.load(cfg.path_model, map_location=device)
+        model.load_state_dict(model_state_dict)
     else:
-        model = torch.load('model/PCA/PCA_'+ string + '.model', map_location=device)
+        model_state_dict = torch.load('model/PCA/PCA_'+ string + '.model', map_location=device)
+        model.load_state_dict(model_state_dict)
     epochs = 1
     batch_size = 1
 
