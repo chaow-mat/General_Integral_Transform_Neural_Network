@@ -75,8 +75,8 @@ The evaluation cost vs. test error for all methods with varying hyperparameters 
 <img src="Figures/cost-error.jpg" width="600" />
 
 ## Reference
-**FNO**: _Zongyi Li, Nikola Borislavov Kovachki, Kamyar Azizzadenesheli, Burigede liu, Kaushik Bhattacharya, Andrew Stuart, and Anima Anandkumar. Fourier neural operator for parametric partial differential equations. In International Conference on Learning Representations, 2021_
+**FNO**: Zongyi Li, Nikola Borislavov Kovachki, Kamyar Azizzadenesheli, Burigede liu, Kaushik Bhattacharya, Andrew Stuart, and Anima Anandkumar. "Fourier neural operator for parametric partial differential equations." _In International Conference on Learning Representations, 2021_
 
-**PCA-Net**: _Kaushik Bhattacharya; Bamdad Hosseini; Nikola B. Kovachki; Andrew M. Stuart. Model Reduction And Neural Networks For Parametric PDEs. The SMAI Journal of computational mathematics, Volume 7 (2021), pp. 121-157. doi : 10.5802/smai-jcm.74._
+**PCA-Net**: Kaushik Bhattacharya; Bamdad Hosseini; Nikola B. Kovachki; Andrew M. Stuart. "Model Reduction And Neural Networks For Parametric PDEs." _The SMAI Journal of computational mathematics, Volume 7 (2021), pp. 121-157. doi : 10.5802/smai-jcm.74._
 
-**POD-DeepOnet**: _Lu, Lu, Xuhui Meng, Shengze Cai, Zhiping Mao, Somdatta Goswami, Zhongqiang Zhang, and George Em Karniadakis. "A comprehensive and fair comparison of two neural operators (with practical extensions) based on fair data." Computer Methods in Applied Mechanics and Engineering 393 (2022): 114778._
+**POD-DeepOnet**: Lu, Lu, Xuhui Meng, Shengze Cai, Zhiping Mao, Somdatta Goswami, Zhongqiang Zhang, and George Em Karniadakis. "A comprehensive and fair comparison of two neural operators (with practical extensions) based on fair data." _Computer Methods in Applied Mechanics and Engineering 393 (2022): 114778._
