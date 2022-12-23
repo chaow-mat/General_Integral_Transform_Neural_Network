@@ -68,5 +68,5 @@ The results of the neural network model trained on N = 20000 data using hyperpar
 
 ### Evalustion cost
 
-
+<img src="Figures/cost-error.jpg" width="400" />
 
