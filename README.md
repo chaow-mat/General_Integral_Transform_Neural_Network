@@ -37,6 +37,9 @@ python3 GIT_ns.py --c_width 32 --d_width 512 --M 2500 --state 'eval' --path_mode
 <img src="Figures/testerror_ALL.jpg" width="600" />
 
 ### Error profile
+#### Navier-Stokes
+<img src="Figures/maxerror_image_ns.jpg" width="600" />
+
 
 ### Evalustion cost
 
