@@ -45,34 +45,34 @@ The results of the neural network model trained on N = 20000 data using hyperpar
 
 
 #### Navier-Stokes ####
-<img src="Figures/maxerror_image_ns.jpg" width="400" />
+<img src="Figures/select_image_ns.jpg" width="400" />
 
 ---
 
 #### Helmholtz equation ####
-<img src="Figures/maxerror_image_hh.jpg" width="400" />
+<img src="Figures/select_image_hh.jpg" width="400" />
 
 ---
 
 #### Structural Mechanics
-<img src="Figures/maxerror_image_sm.jpg" width="400" />
+<img src="Figures/select_image_sm.jpg" width="400" />
 
 ---
 
 #### Advection equation
-<img src="Figures/maxerror_image_ad.jpg" width="500" />
+<img src="Figures/select_image_ad.jpg" width="500" />
 
 ---
 
 #### Darcy flow
-<img src="Figures/maxerror_image_da.jpg" width="400" />
+<img src="Figures/select_image_poi.jpg" width="400" />
 
 ---
 
 ### Evalustion cost
 The evaluation cost vs. test error for all methods with varying hyperparameters shown, in which evaluation cost is computed by counting floating point operations.
 
-<img src="Figures/cost-error.jpg" width="600" />
+<img src="Figures/cost-error_grid.jpg" width="600" />
 
 ## Reference
 **FNO**: Zongyi Li, Nikola Borislavov Kovachki, Kamyar Azizzadenesheli, Burigede liu, Kaushik Bhattacharya, Andrew Stuart, and Anima Anandkumar. "Fourier neural operator for parametric partial differential equations." _In International Conference on Learning Representations, 2021_
