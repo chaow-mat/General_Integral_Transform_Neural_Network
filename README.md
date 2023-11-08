@@ -51,8 +51,9 @@ The results of the neural network model trained on N = 20000 data using hyperpar
 
 #### Helmholtz equation ####
 
-[//]: # (<img src="Figures/select_image_hh.jpg" width="600" />)
-![](Figures/select_image_hh.jpg)
+<img src="Figures/select_image_hh.jpg" width="400" />
+
+![](Figures/select_image_hh.jpg )
 
 ---
 
