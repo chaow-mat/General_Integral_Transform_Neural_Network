@@ -9,7 +9,7 @@ The PDE problems used for validation are:
 2. Helmholtz equation (2D, structured meshes)
 3. Structural mechanics (2D, unstructured meshes)
 4. Advection equation (1D, structured meshes)
-5. Darcy flow (2D, unstructured meshes)
+5. Poisson equation (2D, unstructured meshes)
 
 All data for training and testing can be found in https://drive.google.com/drive/folders/1vmmPTwiIIbdOVTC209OKArcyjuYZcMHU?usp=sharing. For the problems defined in unstructured meshes, the intepolated data on a structured meshes are provided.
 
@@ -66,7 +66,7 @@ The results of the neural network model trained on N = 20000 data using hyperpar
 
 ---
 
-#### Darcy flow
+#### Poisson equation
 <img src="Figures/select_image_poi.jpg" width="600" />
 
 ---
