@@ -1,30 +1,30 @@
 import os
 import sys
 import numpy as np
+import pylab as plt
+# import sklearn
 import torch
 from torch import nn, optim
 from tensorboardX import SummaryWriter
 sys.path.append('../nn')
+sys.path.append('../')
 from model_ol import *
 from utility_ol import MinMaxNormalizer
-import scipy.io as io
 from Adam import Adam
-import torch.nn.functional as F
 import argparse
 import sys
 from scipy.io import savemat
 import statistics
 
-
 parser = argparse.ArgumentParser()
-parser.add_argument('--c_width', type=int, default=32, help='')
+parser.add_argument('--width', type=int, default=32, help='')
 parser.add_argument('--d_width', type=int, default=512)
-parser.add_argument('--M',  type=int, default=2500, help="number of dataset")
+parser.add_argument('--M',  type=int, default=20000, help="number of dataset")
 parser.add_argument('--dim_PCA', type=int, default=200)
 parser.add_argument('--eps', type=float, default=1e-6)
 parser.add_argument('--noliz', type=bool, default=True)
-parser.add_argument('--device', type=int, default=3, help="index of cuda device")
-parser.add_argument('--state', type=str, default='eval')
+parser.add_argument('--device', type=int, default=0, help="index of cuda device")
+parser.add_argument('--state', type=str, default='train')
 parser.add_argument('--path_model', type=str, default='', help="path of model for testing")
 cfg = parser.parse_args()
 
@@ -35,10 +35,10 @@ device = torch.device('cuda:' + str(cfg.device))
 ntrain = cfg.M
 ntest = cfg.M
 layer = 3
-c_width = cfg.c_width
+width = cfg.width
 d_width = cfg.d_width
 batch_size = 64
-learning_rate = 0.001
+learning_rate = 0.0001
 num_epoches = 3000
 ep_predict = 10
 step_size = 500
@@ -46,9 +46,9 @@ gamma = 0.5
 
 # load data
 prefix = "~/dataset/FtF/"
-data = io.loadmat(prefix + "Static-planestress_40000.mat")
-inputs = data['f_bc'].T
-outputs = data['stress'].T
+data = np.load(prefix + "Advection_40000_compressed.npz")
+inputs = data['inputs']
+outputs = data['outputs']
 
 # PCA
 train_inputs = np.reshape(inputs[:,  :ntrain], (-1, ntrain))
@@ -90,19 +90,16 @@ y_normalizer.cuda()
 
 print("Input #bases : ", r_f, " output #bases : ", r_g)
 
-################################################################
-# training and evaluation
-################################################################
-model = GIT(r_f, d_width, width, r_g)
+model = GIT_lpn(r_f, d_width, width, r_g)
 string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_l' + str(layer) + '_act_gelu' + '_dw' + str(d_width) + '_cw' + str(width)
 # path to save model
 if cfg.state=='train':
-    path = 'training/GIT/GIT_' + string
+    path = 'training/GIT_lpn/GIT_lpn_' + string
     if not os.path.exists(path):
         os.makedirs(path)
     writer = SummaryWriter(log_dir=path)
 
-    path_model = "model/GIT/"
+    path_model = "model/GIT_lpn/"
     if not os.path.exists(path_model):
         os.makedirs(path_model)
 else:
@@ -110,7 +107,7 @@ else:
         model_state_dict = torch.load(cfg.path_model, map_location=device)
         model.load_state_dict(model_state_dict)
     else:
-        model_state_dict = torch.load('model/GIT/GIT_' + string +  '.model', map_location=device)
+        model_state_dict = torch.load('model/GIT_lpn/GIT_lpn_' + string +  '.model', map_location=device)
         model.load_state_dict(model_state_dict)
     num_epoches = 1
     batch_size = 1
@@ -166,8 +163,7 @@ for ep in range(num_epoches):
                 norms = np.linalg.norm(y_test, axis=1)
                 error = y_test - y_test_pred.T
                 relative_error = np.linalg.norm(error, axis=1) / norms
-                if cfg.state == 'eval':
-                    error_list.append(relative_error.item())
+                error_list.append(relative_error)
                 average_relative_error += np.sum(relative_error)
 
     if ep % ep_predict == 0:
@@ -175,7 +171,7 @@ for ep in range(num_epoches):
         print(f"Average Relative Error of original PCA: {ep } {average_relative_error: .6e}")
         if cfg.state=='train':
             writer.add_scalar("test/error", average_relative_error, ep)
-# save worse case
+
     if cfg.state=='eval':
         median = statistics.median(error_list)
         idx_median = min(range(len(error_list)), key=lambda i: abs(error_list[i] - median))
@@ -186,19 +182,19 @@ for ep in range(num_epoches):
         output = y_normalizer.decode(model(x_test[idx_median:idx_median + 1, :].to(device))).reshape(1, -1).detach().cpu().numpy()
         output = np.matmul(Ug, output.T).T.reshape(-1, 1)
         output_true = test_outputs[:, idx_median:idx_median + 1].reshape(-1, 1).detach().cpu().numpy()
-        savemat('predictions/GIT/GIT_sm_median_' + string + '_id' + str(idx_median) + '.mat',
+        savemat('predictions/GIT_lpn/GIT_lpn_ad_median_' + string + '_id' + str(idx_median) + '.mat',
                 {'input': input, 'output': output, 'output_true': output_true})
         # max
         input = test_inputs[:, idx_max:idx_max + 1].reshape(-1, 1)
         output = y_normalizer.decode(model(x_test[idx_max:idx_max + 1, :].to(device))).reshape(1, -1).detach().cpu().numpy()
         output = np.matmul(Ug, output.T).T.reshape(-1, 1)
         output_true = test_outputs[:, idx_max:idx_max + 1].reshape(-1, 1).detach().cpu().numpy()
-        savemat('predictions/GIT/GIT_sm_max_' + string + '_id' + str(idx_max) + '.mat',
+        savemat('predictions/GIT_lpn/GIT_lpn_ad_max_' + string + '_id' + str(idx_max) + '.mat',
                 {'input': input, 'output': output, 'output_true': output_true})
 
 # save model
 if cfg.state=='train':
-    torch.save(model.state_dict(), 'model/GIT/GIT_' + string + '.model')
+    torch.save(model.state_dict(), 'model/GIT_lpn/GIT_lpn_' + string + '.model')
 
 
 

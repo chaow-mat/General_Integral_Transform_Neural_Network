@@ -46,28 +46,27 @@ data = np.load(prefix + "NavierStokes_40000_compressed.npz")
 inputs = data['inputs']
 outputs = data['outputs']
 
-train_inputs = np.reshape(inputs[:,:,:ntrain], (-1, ntrain))
-test_inputs  = np.reshape(inputs[:,:,ntrain:ntrain+ntest], (-1, ntest))
-Ui,Si,Vi = np.linalg.svd(train_inputs)
-en_f= 1 - np.cumsum(Si)/np.sum(Si)
-r_f = np.argwhere(en_f<cfg.eps)[0,0]
+train_inputs = np.reshape(inputs[:, :, :ntrain], (-1, ntrain))
+test_inputs = np.reshape(inputs[:, :, ntrain:ntrain + ntest], (-1, ntest))
+Ui, Si, Vi = np.linalg.svd(train_inputs)
+en_f = 1 - np.cumsum(Si) / np.sum(Si)
+r_f = np.argwhere(en_f < cfg.eps)[0, 0]
 r_f = 200
 
-Uf = Ui[:,:r_f]
-f_hat = np.matmul(Uf.T,train_inputs)
+Uf = Ui[:, :r_f]
+f_hat = np.matmul(Uf.T, train_inputs)
 f_hat_test = np.matmul(Uf.T, test_inputs)
 x_train = torch.from_numpy(f_hat.T.astype(np.float32).reshape(-1))
 x_test = torch.from_numpy(f_hat_test.T.astype(np.float32).reshape(-1))
 
-
-train_outputs = np.reshape(outputs[:,:,:ntrain], (-1, ntrain))
-test_outputs  = np.reshape(outputs[:,:,ntrain:ntrain+ntest], (-1,ntest))
-Uo,So,Vo = np.linalg.svd(train_outputs)
-en_g = 1 - np.cumsum(So)/np.sum(So)
-r_g = np.argwhere(en_g<cfg.eps)[0,0]
+train_outputs = np.reshape(outputs[:, :, :ntrain], (-1, ntrain))
+test_outputs = np.reshape(outputs[:, :, ntrain:ntrain + ntest], (-1, ntest))
+Uo, So, Vo = np.linalg.svd(train_outputs)
+en_g = 1 - np.cumsum(So) / np.sum(So)
+r_g = np.argwhere(en_g < cfg.eps)[0, 0]
 r_g = 200
-Ug = Uo[:,:r_g]
-g_hat = np.matmul(Ug.T,train_outputs)
+Ug = Uo[:, :r_g]
+g_hat = np.matmul(Ug.T, train_outputs)
 g_hat_test = np.matmul(Ug.T, test_outputs)
 y_train = torch.from_numpy(g_hat.T.astype(np.float32).reshape(-1))
 y_test = torch.from_numpy(g_hat_test.T.astype(np.float32).reshape(-1))
@@ -87,16 +86,17 @@ x_test = x_test.reshape(ntest, r_f)
 y_test = y_test.reshape(ntest, r_g)
 
 print("Input #bases : ", r_f, " output #bases : ", r_g)
- 
+
 ################################################################
 # training and evaluation
 ################################################################
 model = FNN(r_f, r_g, layers, width)
-string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_cw'+ str(cfg.width) + '_layer'+str(layers)+'_lr' + str(learning_rate) + '-' + str(
-        step_size) + '-' + str(gamma) + '_noliz' + str(cfg.noliz)
+string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_cw' + str(cfg.width) + '_layer' + str(
+    layers) + '_lr' + str(learning_rate) + '-' + str(
+    step_size) + '-' + str(gamma) + '_noliz' + str(cfg.noliz)
 
-if cfg.state=='train':
-    path = 'training/PCA/PCA_'+ string
+if cfg.state == 'train':
+    path = 'training/PCA/PCA_' + string
     if not os.path.exists(path):
         os.makedirs(path)
     writer = SummaryWriter(log_dir=path)
@@ -109,13 +109,15 @@ else:
         model_state_dict = torch.load(cfg.path_model, map_location=device)
         model.load_state_dict(model_state_dict)
     else:
-        model_state_dict = torch.load('model/PCA/PCA_'+ string + '.model', map_location=device)
+        model_state_dict = torch.load('model/PCA/PCA_' + string + '.model', map_location=device)
         model.load_state_dict(model_state_dict)
     epochs = 1
     batch_size = 1
 
-train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train, y_train), batch_size=batch_size, shuffle=True)
-test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test, test_outputs.T), batch_size=batch_size, shuffle=False)
+train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train, y_train), batch_size=batch_size,
+                                           shuffle=True)
+test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test, test_outputs.T),
+                                          batch_size=batch_size, shuffle=False)
 
 model.to(device)
 
@@ -126,7 +128,7 @@ myloss = LpLoss(size_average=False)
 
 t0 = default_timer()
 for ep in range(epochs):
-    if cfg.state=='train':
+    if cfg.state == 'train':
         model.train()
         t1 = default_timer()
         train_l2 = 0
@@ -138,7 +140,7 @@ for ep in range(epochs):
             out = y_normalizer.decode(out)
             y = y_normalizer.decode(y)
 
-            loss = myloss(out , y)
+            loss = myloss(out, y)
             loss.backward()
 
             optimizer.step()
@@ -146,7 +148,7 @@ for ep in range(epochs):
 
         scheduler.step()
 
-        train_l2/= ntrain
+        train_l2 /= ntrain
 
         t2 = default_timer()
         writer.add_scalar("train/loss", train_l2, ep)
@@ -166,12 +168,13 @@ for ep in range(epochs):
                 norms = np.linalg.norm(y_test, axis=1)
                 error = y_test - y_test_pred.T
                 relative_error = np.linalg.norm(error, axis=1) / norms
-                error_list.append(relative_error)
+                if cfg.state == 'eval':
+                    error_list.append(relative_error.item())
                 average_relative_error += np.sum(relative_error)
     if ep % 10 == 0:
         average_relative_error = average_relative_error / (ntest)
         print(f"Average Relative Test Error of PCA: {ep} {average_relative_error: .6e}")
-        if cfg.state=='train':
+        if cfg.state == 'train':
             writer.add_scalar("test/error", average_relative_error, ep)
 
     if cfg.state == 'eval':

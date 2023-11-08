@@ -96,8 +96,7 @@ print("Input #bases : ", r_f, " output #bases : ", r_g)
 # training and evaluation
 ################################################################
 model = FNN(r_f, r_g, layers, width)
-string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_cw'+ str(cfg.width) + '_layer'+str(layers)+'_lr' + str(learning_rate) + '-' + str(
-        step_size) + '-' + str(gamma) + '_noliz' + str(cfg.noliz)
+string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_cw'+ str(cfg.width)
 
 if cfg.state=='train':
     path = 'training/PCA/PCA_'+ string
@@ -171,11 +170,12 @@ for ep in range(epochs):
                 norms = np.linalg.norm(y_test, axis=1)
                 error = y_test - y_test_pred.T
                 relative_error = np.linalg.norm(error, axis=1) / norms
-                error_list.append(relative_error)
+                if cfg.state == 'eval':
+                    error_list.append(relative_error.item())
                 average_relative_error += np.sum(relative_error)
     if ep % 10 == 0:
         average_relative_error = average_relative_error / (ntest)
-        print(f"Average Relative Test Error of PCA: {ep } {average_relative_error2: .6e}")
+        print(f"Average Relative Test Error of PCA: {ep } {average_relative_error: .6e}")
         if cfg.state=='train':
             writer.add_scalar("test/error", average_relative_error, ep)
 

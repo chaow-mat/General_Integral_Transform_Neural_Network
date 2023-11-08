@@ -15,21 +15,21 @@ import sys
 from scipy.io import savemat
 import statistics
 
-
 parser = argparse.ArgumentParser()
-parser.add_argument('--c_width', type=int, default=32, help='')
+parser.add_argument('--c_width', type=int, default=16, help='')
 parser.add_argument('--d_width', type=int, default=512)
 parser.add_argument('--M',  type=int, default=2500, help="number of dataset")
 parser.add_argument('--dim_PCA', type=int, default=200)
 parser.add_argument('--eps', type=float, default=1e-6)
 parser.add_argument('--noliz', type=bool, default=True)
-parser.add_argument('--device', type=int, default=3, help="index of cuda device")
-parser.add_argument('--state', type=str, default='eval')
+parser.add_argument('--device', type=int, default=0, help="index of cuda device")
+parser.add_argument('--state', type=str, default='train')
 parser.add_argument('--path_model', type=str, default='', help="path of model for testing")
 cfg = parser.parse_args()
 
 print(sys.argv)
 device = torch.device('cuda:' + str(cfg.device))
+
 
 # parameters
 ntrain = cfg.M
@@ -38,17 +38,18 @@ layer = 3
 c_width = cfg.c_width
 d_width = cfg.d_width
 batch_size = 64
-learning_rate = 0.001
-num_epoches = 3000
+learning_rate = 0.0001
+num_epoches = 5000
 ep_predict = 10
 step_size = 500
 gamma = 0.5
 
 # load data
 prefix = "~/dataset/FtF/"
-data = io.loadmat(prefix + "Static-planestress_40000.mat")
+data = io.loadmat(prefix + "Darcy_Triangular_40000.mat")
+
 inputs = data['f_bc'].T
-outputs = data['stress'].T
+outputs = data['u_field'].T
 
 # PCA
 train_inputs = np.reshape(inputs[:,  :ntrain], (-1, ntrain))
@@ -90,9 +91,10 @@ y_normalizer.cuda()
 
 print("Input #bases : ", r_f, " output #bases : ", r_g)
 
-################################################################
-# training and evaluation
-################################################################
+################################################################################
+#      Training and evaluation
+################################################################################
+
 model = GIT(r_f, d_width, width, r_g)
 string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_l' + str(layer) + '_act_gelu' + '_dw' + str(d_width) + '_cw' + str(width)
 # path to save model
@@ -157,6 +159,7 @@ for ep in range(num_epoches):
     error_list = []
     with torch.no_grad():
         for x, _, y_test in test_loader:
+            # ite += 1
             x= x.to(device)
             out = model(x)
             out = y_normalizer.decode(out).detach().cpu().numpy()
@@ -175,7 +178,7 @@ for ep in range(num_epoches):
         print(f"Average Relative Error of original PCA: {ep } {average_relative_error: .6e}")
         if cfg.state=='train':
             writer.add_scalar("test/error", average_relative_error, ep)
-# save worse case
+
     if cfg.state=='eval':
         median = statistics.median(error_list)
         idx_median = min(range(len(error_list)), key=lambda i: abs(error_list[i] - median))
@@ -186,19 +189,19 @@ for ep in range(num_epoches):
         output = y_normalizer.decode(model(x_test[idx_median:idx_median + 1, :].to(device))).reshape(1, -1).detach().cpu().numpy()
         output = np.matmul(Ug, output.T).T.reshape(-1, 1)
         output_true = test_outputs[:, idx_median:idx_median + 1].reshape(-1, 1).detach().cpu().numpy()
-        savemat('predictions/GIT/GIT_sm_median_' + string + '_id' + str(idx_median) + '.mat',
+        savemat('predictions/GIT/GIT_poi_median_' + string + '_id' + str(idx_median) + '.mat',
                 {'input': input, 'output': output, 'output_true': output_true})
         # max
         input = test_inputs[:, idx_max:idx_max + 1].reshape(-1, 1)
         output = y_normalizer.decode(model(x_test[idx_max:idx_max + 1, :].to(device))).reshape(1, -1).detach().cpu().numpy()
         output = np.matmul(Ug, output.T).T.reshape(-1, 1)
         output_true = test_outputs[:, idx_max:idx_max + 1].reshape(-1, 1).detach().cpu().numpy()
-        savemat('predictions/GIT/GIT_sm_max_' + string + '_id' + str(idx_max) + '.mat',
+        savemat('predictions/GIT/GIT_poi_max_' + string + '_id' + str(idx_max) + '.mat',
                 {'input': input, 'output': output, 'output_true': output_true})
 
 # save model
 if cfg.state=='train':
-    torch.save(model.state_dict(), 'model/GIT/GIT_' + string + '.model')
+    torch.save(model.state_dict(), 'predictions/GIT/GIT_' + string + '.model')
 
 
 

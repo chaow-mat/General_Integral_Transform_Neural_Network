@@ -7,7 +7,6 @@ from tensorboardX import SummaryWriter
 sys.path.append('../nn')
 from model_ol import *
 from utility_ol import MinMaxNormalizer
-import scipy.io as io
 from Adam import Adam
 import torch.nn.functional as F
 import argparse
@@ -15,49 +14,49 @@ import sys
 from scipy.io import savemat
 import statistics
 
-
 parser = argparse.ArgumentParser()
-parser.add_argument('--c_width', type=int, default=32, help='')
-parser.add_argument('--d_width', type=int, default=512)
+parser.add_argument('--c_width', type=int, default=2, help='')
+parser.add_argument('--d_width', type=int, default=16)
 parser.add_argument('--M',  type=int, default=2500, help="number of dataset")
 parser.add_argument('--dim_PCA', type=int, default=200)
 parser.add_argument('--eps', type=float, default=1e-6)
 parser.add_argument('--noliz', type=bool, default=True)
-parser.add_argument('--device', type=int, default=3, help="index of cuda device")
-parser.add_argument('--state', type=str, default='eval')
+parser.add_argument('--device', type=int, default=0, help="index of cuda device")
+parser.add_argument('--state', type=str, default='train')
 parser.add_argument('--path_model', type=str, default='', help="path of model for testing")
 cfg = parser.parse_args()
 
 print(sys.argv)
 device = torch.device('cuda:' + str(cfg.device))
 
+# load data
+prefix = "dataset/"
+data = np.load(prefix + "NavierStokes_40000_compressed.npz")
+inputs = data['inputs']
+outputs = data['outputs']
+
 # parameters
 ntrain = cfg.M
 ntest = cfg.M
 layer = 3
-c_width = cfg.c_width
+width = cfg.c_width
 d_width = cfg.d_width
-batch_size = 64
+batch_size = 128
 learning_rate = 0.001
-num_epoches = 3000
+num_epoches = 5000
 ep_predict = 10
 step_size = 500
 gamma = 0.5
 
-# load data
-prefix = "~/dataset/FtF/"
-data = io.loadmat(prefix + "Static-planestress_40000.mat")
-inputs = data['f_bc'].T
-outputs = data['stress'].T
-
 # PCA
-train_inputs = np.reshape(inputs[:,  :ntrain], (-1, ntrain))
-test_inputs = np.reshape(inputs[:, ntrain:ntrain + ntest], (-1, ntest))
+train_inputs = np.reshape(inputs[:, :, :ntrain], (-1, ntrain))
+test_inputs = np.reshape(inputs[:, :, ntrain:ntrain + ntest], (-1, ntest))
 Ui, Si, Vi = np.linalg.svd(train_inputs)
 en_f = 1 - np.cumsum(Si) / np.sum(Si)
 r_f = np.argwhere(en_f < cfg.eps)[0, 0]
 if r_f>cfg.dim_PCA:
     r_f = cfg.dim_PCA
+r_f = 200
 
 Uf = Ui[:, :r_f]
 f_hat = np.matmul(Uf.T, train_inputs)
@@ -65,19 +64,21 @@ f_hat_test = np.matmul(Uf.T, test_inputs)
 x_train = torch.from_numpy(f_hat.T.astype(np.float32))
 x_test = torch.from_numpy(f_hat_test.T.astype(np.float32))
 
-train_outputs = np.reshape(outputs[:,  :ntrain], (-1, ntrain))
-test_outputs = np.reshape(outputs[:,  ntrain:ntrain+ntest], (-1, ntest))
+train_outputs = np.reshape(outputs[:, :, :ntrain], (-1, ntrain))
+test_outputs = np.reshape(outputs[:, :, ntrain:ntrain+ntest], (-1, ntest))
 Uo, So, Vo = np.linalg.svd(train_outputs)
 en_g = 1 - np.cumsum(So) / np.sum(So)
 r_g = np.argwhere(en_g < cfg.eps)[0, 0]
 if r_g>cfg.dim_PCA:
     r_g = cfg.dim_PCA
+r_g = 200
 Ug = Uo[:, :r_g]
 g_hat = np.matmul(Ug.T, train_outputs)
 g_hat_test = np.matmul(Ug.T, test_outputs)
 y_train = torch.from_numpy(g_hat.T.astype(np.float32))
 y_test = torch.from_numpy(g_hat_test.T.astype(np.float32))
 test_outputs = torch.from_numpy(test_outputs).to(device)
+train_outputs = torch.from_numpy(train_outputs).to(device)
 
 # normalization
 x_normalizer = MinMaxNormalizer(x_train, -1, 1, device, cfg.noliz)
@@ -93,16 +94,17 @@ print("Input #bases : ", r_f, " output #bases : ", r_g)
 ################################################################
 # training and evaluation
 ################################################################
-model = GIT(r_f, d_width, width, r_g)
+model = GIT_lpn(r_f, d_width, width, r_g)
 string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_l' + str(layer) + '_act_gelu' + '_dw' + str(d_width) + '_cw' + str(width)
+
 # path to save model
 if cfg.state=='train':
-    path = 'training/GIT/GIT_' + string
+    path = 'training/GIT_lpn/GIT_lpn_' + string
     if not os.path.exists(path):
         os.makedirs(path)
     writer = SummaryWriter(log_dir=path)
 
-    path_model = "model/GIT/"
+    path_model = "model/GIT_lpn/"
     if not os.path.exists(path_model):
         os.makedirs(path_model)
 else:
@@ -110,9 +112,9 @@ else:
         model_state_dict = torch.load(cfg.path_model, map_location=device)
         model.load_state_dict(model_state_dict)
     else:
-        model_state_dict = torch.load('model/GIT/GIT_' + string +  '.model', map_location=device)
+        model_state_dict = torch.load('model/GIT_lpn/GIT_lpn_' + string +  '.model', map_location=device)
         model.load_state_dict(model_state_dict)
-    num_epoches = 1
+    epochs = 1
     batch_size = 1
 
 # data loader
@@ -166,8 +168,7 @@ for ep in range(num_epoches):
                 norms = np.linalg.norm(y_test, axis=1)
                 error = y_test - y_test_pred.T
                 relative_error = np.linalg.norm(error, axis=1) / norms
-                if cfg.state == 'eval':
-                    error_list.append(relative_error.item())
+                error_list.append(relative_error)
                 average_relative_error += np.sum(relative_error)
 
     if ep % ep_predict == 0:
@@ -186,19 +187,19 @@ for ep in range(num_epoches):
         output = y_normalizer.decode(model(x_test[idx_median:idx_median + 1, :].to(device))).reshape(1, -1).detach().cpu().numpy()
         output = np.matmul(Ug, output.T).T.reshape(-1, 1)
         output_true = test_outputs[:, idx_median:idx_median + 1].reshape(-1, 1).detach().cpu().numpy()
-        savemat('predictions/GIT/GIT_sm_median_' + string + '_id' + str(idx_median) + '.mat',
+        savemat('predictions/GIT_lpn/GIT_lpn_ns_median_' + string + '_id' + str(idx_median) + '.mat',
                 {'input': input, 'output': output, 'output_true': output_true})
         # max
         input = test_inputs[:, idx_max:idx_max + 1].reshape(-1, 1)
         output = y_normalizer.decode(model(x_test[idx_max:idx_max + 1, :].to(device))).reshape(1, -1).detach().cpu().numpy()
         output = np.matmul(Ug, output.T).T.reshape(-1, 1)
         output_true = test_outputs[:, idx_max:idx_max + 1].reshape(-1, 1).detach().cpu().numpy()
-        savemat('predictions/GIT/GIT_sm_max_' + string + '_id' + str(idx_max) + '.mat',
+        savemat('predictions/GIT_lpn/GIT_lpn_ns_max_' + string + '_id' + str(idx_max) + '.mat',
                 {'input': input, 'output': output, 'output_true': output_true})
 
 # save model
 if cfg.state=='train':
-    torch.save(model.state_dict(), 'model/GIT/GIT_' + string + '.model')
+    torch.save(model.state_dict(), 'model/GIT_lpn/GIT_lpn_' + string + '.model')
 
 
 

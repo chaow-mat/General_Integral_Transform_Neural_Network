@@ -100,7 +100,7 @@ print("Input #bases : ", r_f, " output #bases : ", r_g)
 # training and evaluation
 ################################################################
 model = GIT(r_f, d_width, c_width, r_g)
-string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_l' + str(layer) + '_act_gelu' + '_dw' + str(d_width) + '_cw' + str(c_width) + '_lr' + str(learning_rate) + '-' + str(step_size) + '-' + str(gamma)+ '_noliz' + str(cfg.noliz)
+string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_l' + str(layer) + '_act_gelu' + '_dw' + str(d_width) + '_cw' + str(c_width)
 # path to save model
 if cfg.state=='train':
     path = 'training/GIT/GIT_' + string

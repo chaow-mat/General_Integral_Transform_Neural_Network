@@ -89,8 +89,8 @@ y_normalizer.cuda()
 
 print("Input #bases : ", r_f, " output #bases : ", r_g)
 
-model = GIT(r_f, d_width, c_width, r_g)
-string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_l' + str(layer) + '_act_gelu' + '_dw' + str(d_width) + '_cw' + str(c_width) + '_lr' + str(learning_rate) + '-' + str(step_size) + '-' + str(gamma)+ '_noliz' + str(cfg.noliz)
+model = GIT(r_f, d_width, width, r_g)
+string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_l' + str(layer) + '_act_gelu' + '_dw' + str(d_width) + '_cw' + str(width)
 # path to save model
 if cfg.state=='train':
     path = 'training/GIT/GIT_' + string
@@ -162,7 +162,8 @@ for ep in range(num_epoches):
                 norms = np.linalg.norm(y_test, axis=1)
                 error = y_test - y_test_pred.T
                 relative_error = np.linalg.norm(error, axis=1) / norms
-                error_list.append(relative_error)
+                if cfg.state == 'eval':
+                    error_list.append(relative_error.item())
                 average_relative_error += np.sum(relative_error)
 
     if ep % ep_predict == 0:

@@ -482,7 +482,7 @@ class FNO2d(nn.Module):
         self.modes2 = modes2
         self.width = width
         self.padding = 9 # pad the domain if input is non-periodic
-        self.fc0 = nn.Linear(1, self.width) # input channel is 3: (a(x, y), x, y)
+        self.fc0 = nn.Linear(3, self.width) # input channel is 3: (a(x, y), x, y)
 
         self.conv0 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
         self.conv1 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
@@ -496,8 +496,8 @@ class FNO2d(nn.Module):
         self.fc1 = nn.Linear(self.width, 1)
 
     def forward(self, x):
-        # grid = self.get_grid(x.shape, x.device)
-        # x = torch.cat((x, grid), dim=-1)
+        grid = self.get_grid(x.shape, x.device)
+        x = torch.cat((x, grid), dim=-1)
         x = self.fc0(x)
         x = x.permute(0, 3, 1, 2)
         x = F.pad(x, [0,self.padding, 0,self.padding])
@@ -589,7 +589,7 @@ class FNO1d(nn.Module):
         self.modes1 = modes
         self.width = width
         self.padding = 2 # pad the domain if input is non-periodic
-        self.fc0 = nn.Linear(1, self.width) # input channel is 2: (a(x), x)
+        self.fc0 = nn.Linear(2, self.width) # input channel is 2: (a(x), x)
 
         self.conv0 = SpectralConv1d(self.width, self.width, self.modes1)
         self.conv1 = SpectralConv1d(self.width, self.width, self.modes1)
@@ -604,8 +604,8 @@ class FNO1d(nn.Module):
       
 
     def forward(self, x):
-#         grid = self.get_grid(x.shape, x.device)
-#         x = torch.cat((x, grid), dim=-1)
+        grid = self.get_grid(x.shape, x.device)
+        x = torch.cat((x, grid), dim=-1)
         x = self.fc0(x)
         x = x.permute(0, 2, 1)
         # x = F.pad(x, [0,self.padding]) # pad the domain if input is non-periodic
@@ -663,7 +663,6 @@ class GIT(nn.Module):
 
         self.layer4_c = nn.Linear(c_width, 1)
         self.layer4_d = nn.Linear(d_width, out_dim)
-        # self.act = nn.gelu()
 
         self.scale = (1 / (c_width * c_width))
         self.weights1 = nn.Parameter(
@@ -691,7 +690,6 @@ class GIT(nn.Module):
         x2 = self.layer1_d2(x2)
         x2 = x2.permute(0, 2, 1)  # (b, nx, c)
         x = x1 + x2
-        # x = self.act(x)
         x = F.gelu(x)
 
         x1 = self.layer2_c(x) # (b, nx, c)
@@ -701,7 +699,6 @@ class GIT(nn.Module):
         x2 = self.layer2_d2(x2)
         x2 = x2.permute(0, 2, 1)  # (b, nx, c)
         x = x1 + x2
-        # x = self.act(x)
         x = F.gelu(x)
 
         x1 = self.layer3_c(x) # (b, nx, c)
@@ -720,5 +717,90 @@ class GIT(nn.Module):
 
         return x
 
+################################################################
+#  Generalized integral transform neural network (GIT-NN) LPN-version (linear + nonlinear)
+################################################################
+
+class GIT_lpn(nn.Module):
+    def __init__(self, in_dim, d_width, width, out_dim):
+        super(GIT_lpn, self).__init__()
+        self.in_dim = in_dim
+        self.d_width = d_width
+        self.width = width
+        self.lift_c = nn.Linear(1, width)
+        self.lift_d = nn.Linear(in_dim, d_width)
+
+        self.layer1_c = nn.Linear(width, width)
+        self.layer2_c = nn.Linear(width, width)
+        self.layer3_c = nn.Linear(width, width)
+
+        self.layer1_d1 = nn.Linear(d_width, d_width)
+        self.layer2_d1 = nn.Linear(d_width, d_width)
+        self.layer3_d1 = nn.Linear(d_width, d_width)
+
+        self.layer1_d2 = nn.Linear(d_width, d_width)
+        self.layer2_d2 = nn.Linear(d_width, d_width)
+        self.layer3_d2 = nn.Linear(d_width, d_width)
+
+        self.layer5_c = nn.Linear(width, 1)
+        self.layer5_d = nn.Linear(d_width, out_dim)
+
+        self.scale = (1 / (width * width))
+        self.weights1 = nn.Parameter(
+            self.scale * torch.rand(width, width, d_width, dtype=torch.float))
+        self.weights2 = nn.Parameter(
+            self.scale * torch.rand(width, width, d_width, dtype=torch.float))
+        self.weights3 = nn.Parameter(
+            self.scale * torch.rand(width, width, d_width, dtype=torch.float))
+
+    def get_grid(self, shape, device):
+        batchsize, size_x = shape[0], shape[1]
+        gridx = torch.tensor(np.linspace(0, 1, size_x), dtype=torch.float)
+        gridx = gridx.reshape(1, size_x, 1).repeat([batchsize, 1, 1])
+        return gridx.to(device)
+
+
+    def forward(self, x):
+
+
+        x = x.unsqueeze(2) # (b, nx, c=1)
+        x = self.lift_c(x) # (b, nx, c=width)
+        x = x.permute(0, 2, 1)  # (b, c, nx)
+        x = self.lift_d(x)
+        x = x.permute(0, 2, 1)  # (b, nx. c)
+
+
+        x1 = self.layer1_c(x) # (b, nx, c)
+        x2 = x.permute(0, 2, 1) # (b, c, nx)
+        x2 = self.layer1_d1(x2)
+        x2 = torch.einsum("bix,iox->box", x2, self.weights1)
+        x2 = self.layer1_d2(x2)
+        x2 = x2.permute(0, 2, 1)  # (b, nx, c)
+        x = x1 + F.gelu(x2)
+
+        x1 = self.layer2_c(x) # (b, nx, c)
+        x2 = x.permute(0, 2, 1) # (b, c, nx)
+        x2 = self.layer2_d1(x2)
+        x2 = torch.einsum("bix,iox->box", x2, self.weights2)
+        x2 = self.layer2_d2(x2)
+        x2 = x2.permute(0, 2, 1)  # (b, nx, c)
+        x = x1 + F.gelu(x2)
+
+        x1 = self.layer3_c(x) # (b, nx, c)
+        x2 = x.permute(0, 2, 1) # (b, c, nx)
+        x2 = self.layer3_d1(x2)
+        x2 = torch.einsum("bix,iox->box", x2, self.weights3)
+        x2 = self.layer3_d2(x2)
+        x2 = x2.permute(0, 2, 1)  # (b, nx, c)
+        x = x1 + x2
+
+
+        x = self.layer_c(x)
+        x = x.permute(0, 2, 1)  # (b, c, nx)
+        x = self.layer5_d(x)
+
+        x = x.squeeze(1)
+
+        return x
 
 

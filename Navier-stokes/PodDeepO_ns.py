@@ -41,8 +41,7 @@ epochs = 5000
 step_size = 500
 gamma = 0.5
 
-prefix = "/home/wangchao/dataset/FtF/"
-# prefix = "dataset/"
+prefix = "dataset/"
 inputs = np.load(prefix + "/NavierStokes_inputs.npy")
 outputs = np.load(prefix + "/NavierStokes_outputs.npy")
 
@@ -78,29 +77,34 @@ trunk_basis = torch.from_numpy(np.sqrt(Uo.shape[0]) * Uo[:, :r_g].astype(np.floa
 
 print(" output #bases : ", r_g)
 
+# Define model
+width = [cfg.width] * cfg.layers
+kernels = [3] * cfg.layers
+h = int(np.sqrt(cfg.lift_width))
+w = h
+model = PodDeepOnet_2d_std(trunk_basis, cfg.lift_width, h, w, cfg.d_width, cfg.layers, width, kernels, r_g, 'relu')
+
 ################################################################
 # training and evaluation
 ################################################################
-string =  str(ntrain) + '_dpca_' + str(r_g) + '_l' + str(cfg.layers) + '_dw' + str(cfg.d_width) + '_cw' + str(cfg.c_width) + '_lw' + str(cfg.lift_width) + '_lr_' + str(learning_rate) + '-' + str(step_size) + '-' + str(gamma) + '_noliz' + str(cfg.noliz)
+string =  str(ntrain) + '_dpca_' + str(r_g) + '_l' + str(cfg.layers) + '_dw' + str(cfg.d_width) + '_cw' + str(cfg.width) + '_lw' + str(cfg.lift_width)
 
 if cfg.state=='train':
     path = 'traiing/PodDeepOnet/PodDeepOnet_' + string
     if not os.path.exists(path):
         os.makedirs(path)
     writer = SummaryWriter(log_dir=path)
-    c_width = [cfg.c_width] * cfg.layers
-    kernels = [3] * cfg.layers
-    h = int(np.sqrt(cfg.lift_width))
-    w = h
-    model = PodDeepOnet_2d_std(trunk_basis, cfg.lift_width, h, w, cfg.d_width, cfg.layers, c_width, kernels, r_g, 'relu')
+
     path_model = "model/PodDeepOnet/"
     if not os.path.exists(path_model):
         os.makedirs(path_model)
 else:
     if (cfg.path_model):
-        model = torch.load(cfg.path_model, map_location=device)
+        model_state_dict = torch.load(cfg.path_model, map_location=device)
+        model.load_state_dict(model_state_dict)
     else:
-        model = torch.load('model/PodDeepOnet/PodDeepOnet_' + string +  '.model', map_location=device)
+        model_state_dict = torch.load('model/PodDeepOnet/PodDeepOnet_' + string +  '.model', map_location=device)
+        model.load_state_dict(model_state_dict)
     epochs = 1
     batch_size = 1
 
@@ -156,7 +160,8 @@ for ep in range(epochs):
                 norms = np.linalg.norm(y, axis=1)
                 error = y - out
                 relative_error = np.linalg.norm(error, axis=1) / norms
-                error_list.append(relative_error)
+                if cfg.state == 'eval':
+                    error_list.append(relative_error.item())
                 average_relative_error += np.sum(relative_error)
     if ep % 10 == 0:
         average_relative_error = average_relative_error / (ntest)

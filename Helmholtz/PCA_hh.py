@@ -46,9 +46,7 @@ data = np.load(prefix + "Helmholtz_40000_compressed.npz")
 inputs = data['inputs']
 outputs = data['outputs']
 
-xgrid = np.linspace(0, 1, N+1)
-xgrid = xgrid[:-1]
-dx = xgrid[1] - xgrid[0]
+
 
 
 train_inputs = np.reshape(inputs[:, :, :ntrain], (-1, ntrain))
@@ -99,8 +97,7 @@ print("Input #bases : ", r_f, " output #bases : ", r_g)
 # training and evaluation
 ################################################################
 
-string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_cw'+ str(cfg.width) + '_layer'+str(layers)+'_lr' + str(learning_rate) + '-' + str(
-        step_size) + '-' + str(gamma) + '_noliz' + str(cfg.noliz)
+string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_cw'+ str(cfg.width)
 model = FNN(r_f, r_g, layers, width).to(device)
 
 if cfg.state=='train':
@@ -174,7 +171,8 @@ for ep in range(epochs):
                 norms = np.linalg.norm(y_test, axis=1)
                 error = y_test - y_test_pred.T
                 relative_error = np.linalg.norm(error, axis=1) / norms
-                error_list.append(relative_error)
+                if cfg.state == 'eval':
+                    error_list.append(relative_error.item())
                 average_relative_error += np.sum(relative_error)
     if ep % 10 == 0:
         average_relative_error = average_relative_error / (ntest)

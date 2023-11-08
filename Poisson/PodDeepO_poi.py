@@ -1,6 +1,7 @@
 import os
 import sys
 import numpy as np
+import scipy.io as io
 import torch
 
 sys.path.append('../nn')
@@ -15,17 +16,17 @@ import statistics
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--width', type=int, default=64)
-parser.add_argument('--M', type=int, default=2500, help="number of dataset")
+parser.add_argument('--M', type=int, default=20000, help="number of dataset")
 parser.add_argument('--lift_width', type=int, default=3136)
 parser.add_argument('--c_width', type=int, default=32)
 parser.add_argument('--d_width', type=int, default=512)
 parser.add_argument('--layers', type=int, default=3, help='layers of CNN')
-parser.add_argument('--device', type=int, default=2)
+parser.add_argument('--device', type=int, default=3)
 parser.add_argument('--dim_PCA', type=int, default=200)
-parser.add_argument('--eps', type=float, default=1e-3)
+parser.add_argument('--eps', type=float, default=1e-6)
 parser.add_argument('--noliz', type=bool, default=True)
-parser.add_argument('--state', type=str, default='train')
-parser.add_argument('--path_model', type=str, default='', help="path of model for testing")
+parser.add_argument('--state', type=str, default='eval')
+parser.add_argument('--path_model', type=str, default='/home/wangchao/Codes/FunctionLearning/da/PodDeepOnet/model/PodDeepOnet_20000_dpca_17_l3_dw512_cw32_lw3136_lr_0.0001-500-0.5_nolizTrue-lploss.model', help="path of model for testing")
 cfg = parser.parse_args()
 print(sys.argv)
 
@@ -33,23 +34,22 @@ device = torch.device('cuda:' + str(cfg.device))
 
 M = cfg.M
 batch_size = int(M/2500 * 128)
-N = 101
+N = 200
 ntrain = cfg.M
 ntest = cfg.M
 N_theta = 100
-learning_rate = 0.001
+learning_rate = 0.0001
 epochs = 5000
 step_size = 500
 gamma = 0.5
 
 # load data
-prefix = "~/dataset/FtF/"
-data = np.load(prefix + "Advection_40000_compressed.npz")
-inputs = data['inputs']
-outputs = data['outputs']
 
-inputs = inputs.transpose(1, 0)
-outputs = outputs.transpose(1, 0)
+prefix = "dataset/"
+data = io.loadmat(prefix + "/Darcy_Triangular_40000.mat")
+
+inputs = data['f_bc'] # [40000, 101]
+outputs = data['u_field'] # [40000, 2295]
 
 x_train = torch.from_numpy(inputs[:ntrain, :].astype(np.float32).reshape(-1))
 x_test = torch.from_numpy(inputs[ntrain:ntrain+ntest, :].astype(np.float32).reshape(-1))
@@ -65,26 +65,33 @@ y_train = y_normalizer.encode(y_train)
 y_test = y_normalizer.encode(y_test)
 y_normalizer.cuda()
 
-x_train = x_train.reshape(ntrain, 200)
-y_train = y_train.reshape(ntrain, 200)
-x_test = x_test.reshape(ntest, 200)
-y_test = y_test.reshape(ntest, 200)
+x_train = x_train.reshape(ntrain, 101)
+y_train = y_train.reshape(ntrain, 2295)
+x_test = x_test.reshape(ntest, 101)
+y_test = y_test.reshape(ntest, 2295)
 
 # compute trunk basis
 Uo, So, Vo = np.linalg.svd(y_train.T)
 en_g = 1 - np.cumsum(So) / np.sum(So)
 r_g = np.argwhere(en_g < cfg.eps)[0, 0]
 # r_g = dim_PCA
-if r_g > cfg.dim_PCA:
-    r_g = cfg.dim_PCA
 trunk_basis = torch.from_numpy(np.sqrt(Uo.shape[0]) * Uo[:, :r_g].astype(np.float32)).to(device)
 
+
 print(" output #bases : ", r_g)
+
+###############################################################
+#  Define model
+###############################################################
+width = [cfg.width] * cfg.layers
+kernels = [3] * cfg.layers
+h = int(np.sqrt(cfg.lift_width))
+w = h
+model = PodDeepOnet_2d_unstd(trunk_basis, 101, cfg.lift_width, h, w, cfg.d_width, cfg.layers, width, kernels, r_g, 'relu')
 
 ################################################################
 # training and evaluation
 ################################################################
-model = PodDeepOnet_1d(trunk_basis, 200,  cfg.d_width, r_g, 'relu')
 string =  str(ntrain) + '_dpca_' + str(r_g) + '_l' + str(cfg.layers) + '_dw' + str(cfg.d_width) + '_cw' + str(cfg.width) + '_lw' + str(cfg.lift_width)
 
 if cfg.state=='train':
@@ -138,15 +145,16 @@ for ep in range(epochs):
             optimizer.step()
             train_l2 += loss.item()
 
-
         scheduler.step()
 
         train_l2 /= ntrain
 
         t2 = default_timer()
         writer.add_scalar("train/loss", train_l2, ep)
+        # print("Epoch : ", ep, " Epoch time : ", t2-t1, " Train L2 Loss : ", train_l2)
 
     average_relative_error = 0
+    ite = 0
     error_list = []
     with torch.no_grad():
         for x, y in test_loader:
@@ -167,22 +175,24 @@ for ep in range(epochs):
         print(f"Average Relative Test Error of PCA: {ep} {average_relative_error: .6e}")
         if cfg.state=='train':
             writer.add_scalar("test/error", average_relative_error, ep)
+
     if cfg.state == 'eval':
         median = statistics.median(error_list)
         idx_median = min(range(len(error_list)), key=lambda i: abs(error_list[i] - median))
         maxx = max(error_list)
         idx_max = min(range(len(error_list)), key=lambda i: abs(error_list[i] - maxx))
+        print('median ', idx_median, ':', median, ' max ', idx_max, ':', maxx)
         # median
         input = inputs[ntrain+idx_median:ntrain+idx_median + 1, :].reshape(1, -1)
         output = y_normalizer.decode(model(x_test[idx_median:idx_median + 1, :].to(device))).reshape(1, -1).detach().cpu().numpy()
         output_true = outputs[ntrain+idx_median:ntrain+idx_median + 1, :].reshape(1, -1)
-        savemat('predictions/PodDeepOnet/PodDeepOnet_ad_median_' + string + '_id' + str(idx_median) + '.mat',
+        savemat('predictions/PodDeepOnet/PodDeepOnet_poi_median_' + string + '_id' + str(idx_median) + '.mat',
                 {'input': input, 'output': output, 'output_true': output_true})
         # max
         input = inputs[ntrain + idx_max:ntrain + idx_max + 1, :].reshape(1, -1)
         output = y_normalizer.decode(model(x_test[idx_max:idx_max + 1, :].to(device))).reshape(1, -1).detach().cpu().numpy()
         output_true = outputs[ntrain + idx_max:ntrain + idx_max + 1, :].reshape(1, -1)
-        savemat('predictions/PodDeepOnet/PodDeepOnet_ad_max_' + string + '_id' + str(idx_max) + '.mat',
+        savemat('predictions/PodDeepOnet/PodDeepOnet_poi_max_' + string + '_id' + str(idx_max) + '.mat',
                 {'input': input, 'output': output, 'output_true': output_true})
 
 # save model

@@ -1,6 +1,6 @@
 """
 @author: Zongyi Li
-This file is the Fourier Neural Operator for 2D problem such as the Darcy Flow discussed in Section 5.2 in the [paper](https://arxiv.org/pdf/2010.08895.pdf).
+This file is the Fourier Neural Operator for 2D problem such as the Poisson Flow discussed in Section 5.2 in the [paper](https://arxiv.org/pdf/2010.08895.pdf).
 """
 import os
 import sys
@@ -83,7 +83,7 @@ y_test = y_test.reshape(ntest ,s,1)
 # training and evaluation
 ################################################################
 model = FNO1d(modes, width).to(device)
-string =  str(ntrain) + "_cw" + str(width) + "_m" + str(modes) + "_lr" + str(learning_rate) + "-" + str(step_size) + "-" + str(gamma) +  '_noliz' + str(cfg.noliz)
+string =  str(ntrain) + "_cw" + str(width) + "_m" + str(modes)
 
 if cfg.state=='train':
     path = "training/FNO/FNO_"+string
@@ -94,6 +94,9 @@ if cfg.state=='train':
     if not os.path.exists(path_model):
         os.makedirs(path_model)
 else: # eval
+    path = "predictions/FNO/"
+    if not os.path.exists(path):
+        os.makedirs(path)
     if(cfg.path_model):
         model_state_dict = torch.load(cfg.path_model, map_location=device)
         model.load_state_dict(model_state_dict)
@@ -154,7 +157,8 @@ for ep in range(epochs):
                 norms = torch.norm(y, dim=1)
                 error = y - out
                 relative_error = torch.norm(error, dim=1) / norms
-                error_list.append(relative_error)
+                if cfg.state == 'eval':
+                    error_list.append(relative_error.item())
                 average_relative_error += torch.sum(relative_error)
     if ep % 10 == 0:
         average_relative_error = average_relative_error / (ntest)

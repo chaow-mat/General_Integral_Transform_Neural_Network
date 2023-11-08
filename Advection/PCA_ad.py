@@ -27,7 +27,6 @@ print(sys.argv)
 
 device = torch.device('cuda:' + str(cfg.device))
 
-
 M = cfg.M
 width = cfg.width
 layers = cfg.layers
@@ -92,8 +91,7 @@ y_test = y_test.reshape(ntest, r_g)
 # training and evaluation
 ################################################################
 model = FNN(r_f, r_g, layers, width)
-string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_cw'+ str(cfg.width) + '_layer'+str(layers)+'_lr' + str(learning_rate) + '-' + str(
-        step_size) + '-' + str(gamma) + '_noliz' + str(cfg.noliz)
+string = str(ntrain) + '_dpca_' + str(r_f) + '-' + str(r_g) + '_cw'+ str(cfg.width)
 
 if cfg.state=='train':
     path = 'training/PCA/PCA_'+ string
